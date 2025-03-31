@@ -144,8 +144,28 @@ if $destroy; then
   log_info "Deleting storage account $storage_account_name..."
   run_or_log "az storage account delete --name $storage_account_name --resource-group $resource_group --yes"
 
+  sp_object_id=$(az ad sp list --display-name "$sp_name" --query "[0].id" -o tsv 2>/dev/null || true)
+  if [ -n "$sp_object_id" ]; then
+    log_info "Deleting service principal $sp_name..."
+    run_or_log "az ad sp delete --id \"$sp_object_id\""
+  else
+    log_warn "Service principal $sp_name not found or already deleted."
+  fi
+
   log_info "Deleting resource group $resource_group..."
   run_or_log "az group delete --name $resource_group --yes --no-wait"
+
+  # Delete tfvars file
+  if [ -f "$tfvars_path" ]; then
+    if $dry_run; then
+      echo -e "${YELLOW}[DRY-RUN] Would remove $tfvars_path${NC}"
+    else
+      log_info "Removing $tfvars_path..."
+      rm -f "$tfvars_path"
+    fi
+  else
+    log_info "No tfvars file found to delete."
+  fi
 
   log_info "Destroy complete."
   exit 0
