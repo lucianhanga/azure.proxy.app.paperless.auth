@@ -139,10 +139,18 @@ if $destroy; then
   log_info "Destroying resources..."
 
   log_info "Deleting blob container $container_name..."
-  run_or_log "az storage container delete --name $container_name --account-name $storage_account_name --account-key \$(az storage account keys list --resource-group $resource_group --account-name $storage_account_name --query '[0].value' -o tsv)"
+  if az storage container show --name "$container_name" --account-name "$storage_account_name" --account-key "$(az storage account keys list --resource-group $resource_group --account-name $storage_account_name --query '[0].value' -o tsv)" &>/dev/null; then
+    run_or_log "az storage container delete --name $container_name --account-name $storage_account_name --account-key \$(az storage account keys list --resource-group $resource_group --account-name $storage_account_name --query '[0].value' -o tsv)"
+  else
+    log_warn "Blob container $container_name not found or already deleted."
+  fi
 
   log_info "Deleting storage account $storage_account_name..."
-  run_or_log "az storage account delete --name $storage_account_name --resource-group $resource_group --yes"
+  if az storage account show --name "$storage_account_name" --resource-group "$resource_group" &>/dev/null; then
+    run_or_log "az storage account delete --name $storage_account_name --resource-group $resource_group --yes"
+  else
+    log_warn "Storage account $storage_account_name not found or already deleted."
+  fi
 
   sp_object_id=$(az ad sp list --display-name "$sp_name" --query "[0].id" -o tsv 2>/dev/null || true)
   if [ -n "$sp_object_id" ]; then
@@ -153,7 +161,11 @@ if $destroy; then
   fi
 
   log_info "Deleting resource group $resource_group..."
-  run_or_log "az group delete --name $resource_group --yes --no-wait"
+  if az group show --name "$resource_group" &>/dev/null; then
+    run_or_log "az group delete --name $resource_group --yes --no-wait"
+  else
+    log_warn "Resource group $resource_group not found or already deleted."
+  fi
 
   # Delete tfvars file
   if [ -f "$tfvars_path" ]; then
