@@ -37,5 +37,5 @@ jobs:
       - name: Run provisioning script
         run: |
           cd scripts
-          chmod +x ./scripts/create-terraform-environment.bash
-          ./scripts/create-terraform-environment.bash
+          chmod +x ./create-terraform-environment.bash
+          ./create-terraform-environment.bash
