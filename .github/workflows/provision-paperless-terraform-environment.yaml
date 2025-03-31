@@ -1,0 +1,40 @@
+name: Provision Paperless Terraform Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+
+    env:
+      SUBFIX: "ea001"
+      PROJECTNAME: "paperless"
+      REGION: "westeurope"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate config.json
+        run: |
+          cat > ./config.json <<EOF
+          {
+            "subfix": "${SUBFIX}",
+            "projectname": "${PROJECTNAME}",
+            "region": "${REGION}"
+          }
+          EOF
+
+      - name: Run provisioning script
+        run: |
+          chmod +x ./scripts/provision.sh
+          ./scripts/provision.sh
